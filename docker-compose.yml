@@ -118,6 +118,19 @@ services:
     ports:
       - "24224:24224"
 
+  backup:
+    image: registry-one.codescoring.com/ipcs-backup
+    volumes:
+      - ./backup:/backup
+    depends_on:
+      - psql
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    profiles:
+      - donotstart
+
 volumes:
   db-data:
   redis-data:
