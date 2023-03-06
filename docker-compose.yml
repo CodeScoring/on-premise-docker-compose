@@ -25,11 +25,12 @@ x-logging: &logging
 services:
 
   frontend:
-    image: registry-one.codescoring.com/ipcs-frontend:onprem
+    image: registry-one.codescoring.ru/ipcs-frontend:${CODESCORING_VERSION}
+    restart: unless-stopped
     depends_on:
       - backend
     volumes:
-      - django-static:/ipcs-backend/static
+      - django-static:/ipcs-backend/files/static
     ports:
       - "${NGINX_PORT}:${NGINX_PORT}"
     logging: *logging
@@ -40,13 +41,14 @@ services:
   backend:
     <<: *app-dotenv-variables
     environment: *app-secrets
-    image: registry-one.codescoring.com/ipcs-backend:onprem
+    image: registry-one.codescoring.ru/ipcs-backend:${CODESCORING_VERSION}
+    restart: unless-stopped
     depends_on:
       - fluentd
       - redis
       - psql
     volumes:
-      - django-static:/ipcs-backend/static
+      - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
     ports:
@@ -65,24 +67,47 @@ services:
     <<: *app-dotenv-variables
     environment: *app-secrets
 
-    image: registry-one.codescoring.com/ipcs-huey:onprem
+    image: registry-one.codescoring.ru/ipcs-huey:${CODESCORING_VERSION}
+    restart: unless-stopped
     depends_on:
       - fluentd
       - redis
       - backend
     volumes:
-      - django-static:/ipcs-backend/static
+      - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
     logging: *logging
     command: >
       /bin/bash -c "/wait && \
         cd /ipcs-backend && \
-        python ./manage.py run_huey
+        python ./manage.py djangohuey --queue ipcs
+      "
+
+  tasks-high-priority:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+
+    image: registry-one.codescoring.ru/ipcs-huey:${CODESCORING_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - fluentd
+      - redis
+      - backend
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+      - ./ssl:/usr/local/share/ca-certificates
+    logging: *logging
+    command: >
+      /bin/bash -c "/wait && \
+        cd /ipcs-backend && \
+        python ./manage.py djangohuey --queue high-priority
       "
 
   psql:
     image: postgres:13.4
+    restart: unless-stopped
     depends_on:
       - fluentd
     volumes:
@@ -99,7 +124,7 @@ services:
     shm_size: '4gb'
 
   redis:
-    image: redis:latest
+    image: redis:7.0.5
     depends_on:
       - fluentd
     volumes:
@@ -112,14 +137,15 @@ services:
         condition: on-failure
 
   fluentd:
-    image: fluent/fluentd:latest
+    image: fluent/fluentd:v1.15-1
+    restart: unless-stopped
     volumes:
       - fluentd-data:/fluentd/log
     ports:
       - "24224:24224"
 
   backup:
-    image: registry-one.codescoring.com/ipcs-backup
+    image: registry-one.codescoring.ru/ipcs-backup:${CODESCORING_VERSION}
     volumes:
       - ./backup:/backup
     depends_on:
