@@ -106,7 +106,7 @@ services:
       "
 
   psql:
-    image: postgres:13.4
+    image: registry-one.codescoring.ru/postgres:13.4
     restart: unless-stopped
     depends_on:
       - fluentd
@@ -124,11 +124,11 @@ services:
     shm_size: '4gb'
 
   redis:
-    image: redis:7.0.5
+    image: registry-one.codescoring.ru/redis:7.0.5
     depends_on:
       - fluentd
     volumes:
-      - redis-data:/var/lib/redis
+      - redis-data:/data
     ports:
       - "6379:6379"
     logging: *logging
@@ -137,7 +137,7 @@ services:
         condition: on-failure
 
   fluentd:
-    image: fluent/fluentd:v1.15-1
+    image: registry-one.codescoring.ru/fluentd:v1.15-1
     restart: unless-stopped
     volumes:
       - fluentd-data:/fluentd/log
