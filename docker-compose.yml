@@ -81,7 +81,28 @@ services:
     command: >
       /bin/bash -c "/wait && \
         cd /ipcs-backend && \
-        python ./manage.py djangohuey --queue ipcs
+        python ./manage.py djangohuey --queue ipcs --no-periodic
+      "
+
+  huey-scheduler:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+
+    image: registry-one.codescoring.ru/ipcs-huey:${CODESCORING_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - fluentd
+      - redis
+      - backend
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+      - ./ssl:/usr/local/share/ca-certificates
+    logging: *logging
+    command: >
+      /bin/bash -c "/wait && \
+        cd /ipcs-backend && \
+        python ./manage.py djangohuey --queue ipcs --workers 0
       "
 
   tasks-high-priority:
@@ -102,7 +123,28 @@ services:
     command: >
       /bin/bash -c "/wait && \
         cd /ipcs-backend && \
-        python ./manage.py djangohuey --queue high-priority
+        python ./manage.py djangohuey --queue high-priority --no-periodic
+      "
+
+  tasks-high-priority-scheduler:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+
+    image: registry-one.codescoring.ru/ipcs-huey:${CODESCORING_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - fluentd
+      - redis
+      - backend
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+      - ./ssl:/usr/local/share/ca-certificates
+    logging: *logging
+    command: >
+      /bin/bash -c "/wait && \
+        cd /ipcs-backend && \
+        python ./manage.py djangohuey --queue high-priority --workers 0
       "
 
   psql:
