@@ -166,7 +166,7 @@ services:
     shm_size: '4gb'
 
   redis:
-    image: registry-one.codescoring.ru/redis:7.0.5
+    image: registry-one.codescoring.ru/redis:7.0.10
     depends_on:
       - fluentd
     volumes:
