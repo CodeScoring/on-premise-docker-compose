@@ -174,9 +174,7 @@ services:
     ports:
       - "6379:6379"
     logging: *logging
-    deploy:
-      restart_policy:
-        condition: on-failure
+    restart: unless-stopped
 
   fluentd:
     image: registry-one.codescoring.ru/fluentd:v1.15-1
