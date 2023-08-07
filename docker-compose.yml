@@ -5,7 +5,7 @@ x-app-dotenv-variables: &app-dotenv-variables
     - app.env
 
 x-app-secrets: &app-secrets
-- DATABASE_URL=psql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@psql:5432/${POSTGRES_DB}
+- DATABASE_URL=psql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgcat:6432/${POSTGRES_DB}
 - SECRET_KEY=${SECRET_KEY}
 - DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
 - SENTRY_ENABLED=${SENTRY_ENABLED}
@@ -63,6 +63,27 @@ services:
         python ./manage.py collectstatic --noinput && \
         gunicorn ipcs.wsgi -c gunicorn_conf.py
       "
+
+  backend-osa:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+    image: registry-one.codescoring.ru/ipcs-backend:${CODESCORING_VERSION}
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      - fluentd
+      - redis
+      - psql
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+      - ./ssl:/usr/local/share/ca-certificates
+    command: >
+      /bin/bash -c "/wait \
+        && cd /ipcs-backend \
+        && gunicorn ipcs.asgi:application -w 12 --worker-class ipcs.asgi.LifespanOffUvicornWorker --bind 0.0.0.0:8001
+      "
+
   huey:
     <<: *app-dotenv-variables
     environment: *app-secrets
@@ -165,8 +186,26 @@ services:
     command: "postgres -c config_file=/etc/postgresql/postgresql.conf"
     shm_size: '4gb'
 
+  pgcat:
+    image: registry-one.codescoring.ru/ipcs-pgcat:${CODESCORING_VERSION}
+    command: "/bin/bash -c '/wait && pgcat /etc/pgcat/pgcat.toml'"
+    ports:
+      - "9930:9930"
+    environment:
+      - WAIT_HOSTS=psql:5432
+      - WAIT_TIMEOUT=60
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGCAT_POOL_SIZE=50
+    depends_on:
+      - psql
+
   redis:
     image: registry-one.codescoring.ru/redis:7.0.10
+    restart: unless-stopped
     depends_on:
       - fluentd
     volumes:
@@ -174,7 +213,6 @@ services:
     ports:
       - "6379:6379"
     logging: *logging
-    restart: unless-stopped
 
   fluentd:
     image: registry-one.codescoring.ru/fluentd:v1.15-1
