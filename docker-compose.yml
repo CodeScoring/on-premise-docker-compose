@@ -78,11 +78,13 @@ services:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
-    command: >
-      /bin/bash -c "/wait \
-        && cd /ipcs-backend \
-        && gunicorn ipcs.asgi:application -w 12 --worker-class ipcs.asgi.LifespanOffUvicornWorker --bind 0.0.0.0:8001
-      "
+    command:
+      - /bin/bash
+      - -c
+      - |
+        /wait
+        cd /ipcs-backend
+        gunicorn ipcs.asgi:application -w 12 --worker-class ipcs.asgi.LifespanOffUvicornWorker --bind 0.0.0.0:8001
 
   huey:
     <<: *app-dotenv-variables
