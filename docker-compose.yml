@@ -82,7 +82,7 @@ services:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
-    command: 
+    command:
       - /bin/bash
       - -c
       - |
