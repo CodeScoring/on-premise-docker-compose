@@ -5,7 +5,11 @@ x-app-dotenv-variables: &app-dotenv-variables
     - app.env
 
 x-app-secrets: &app-secrets
-- DATABASE_URL=psql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgcat:6432/${POSTGRES_DB}
+- DATABASE_HOST=pgcat
+- DATABASE_PORT=6432
+- DATABASE_NAME=${POSTGRES_DB}
+- DATABASE_USERNAME=${POSTGRES_USER}
+- DATABASE_PASSWORD=${POSTGRES_PASSWORD}
 - SECRET_KEY=${SECRET_KEY}
 - DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
 - SENTRY_ENABLED=${SENTRY_ENABLED}
@@ -78,7 +82,7 @@ services:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
-    command:
+    command: 
       - /bin/bash
       - -c
       - |
@@ -243,3 +247,4 @@ volumes:
   django-static:
   analysis-root:
   fluentd-data:
+
