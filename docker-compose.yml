@@ -251,14 +251,19 @@ services:
       - donotstart
 
   permissions:
+    <<: *app-dotenv-variables
     image: registry-one.codescoring.ru/ipcs-backend:${CODESCORING_VERSION}
     user: "0"
     volumes:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
-    command: >
-      /bin/bash -c "chown -R 1050:1050 /ipcs-backend/files/static && \
-      chown -R 1050:1050 /analysis-root && echo Permission fix succes"
+    command:
+      - /bin/bash
+      - -c
+      - |
+        chown -R 1050:1050 /ipcs-backend/files/static &&
+        chown -R 1050:1050 /analysis-root &&
+        echo Permission fix succes
     profiles:
       - fix-permissions
 
