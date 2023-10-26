@@ -5,7 +5,11 @@ x-app-dotenv-variables: &app-dotenv-variables
     - app.env
 
 x-app-secrets: &app-secrets
-- DATABASE_URL=psql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgcat:6432/${POSTGRES_DB}
+- DATABASE_HOST=pgcat
+- DATABASE_PORT=6432
+- DATABASE_NAME=${POSTGRES_DB}
+- DATABASE_USERNAME=${POSTGRES_USER}
+- DATABASE_PASSWORD=${POSTGRES_PASSWORD}
 - SECRET_KEY=${SECRET_KEY}
 - DJANGO_CSRF_TRUSTED_ORIGINS=${DJANGO_CSRF_TRUSTED_ORIGINS}
 - SENTRY_ENABLED=${SENTRY_ENABLED}
@@ -78,13 +82,22 @@ services:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
       - ./ssl:/usr/local/share/ca-certificates
-    command:
+    command: 
       - /bin/bash
       - -c
       - |
         /wait
         cd /ipcs-backend
         gunicorn ipcs.asgi:application -w 12 --worker-class ipcs.asgi.LifespanOffUvicornWorker --bind 0.0.0.0:8001
+
+  osa-api:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+    image: registry-one.codescoring.ru/ipcs-osa-api:${CODESCORING_VERSION}
+    restart: unless-stopped
+    logging: *logging
+    depends_on:
+      - pgcat
 
   huey:
     <<: *app-dotenv-variables
@@ -257,6 +270,23 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD}
     profiles:
       - donotstart
+
+  permissions:
+    <<: *app-dotenv-variables
+    image: registry-one.codescoring.ru/ipcs-backend:${CODESCORING_VERSION}
+    user: "0"
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+    command:
+      - /bin/bash
+      - -c
+      - |
+        chown -R 1050:1050 /ipcs-backend/files/static &&
+        chown -R 1050:1050 /analysis-root &&
+        echo Permission fix succes
+    profiles:
+      - fix-permissions
 
 volumes:
   db-data:
