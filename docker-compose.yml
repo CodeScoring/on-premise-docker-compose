@@ -46,7 +46,7 @@ services:
     depends_on:
       - fluentd
       - redis
-      - psql
+      - pgcat
     volumes:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
@@ -73,7 +73,7 @@ services:
     depends_on:
       - fluentd
       - redis
-      - psql
+      - pgcat
     volumes:
       - django-static:/ipcs-backend/files/static
       - analysis-root:/analysis-root
@@ -187,6 +187,27 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     command: "postgres -c config_file=/etc/postgresql/postgresql.conf"
     shm_size: '4gb'
+
+  tasks-osa:
+    <<: *app-dotenv-variables
+    environment: *app-secrets
+
+    image: registry-one.codescoring.ru/ipcs-huey:${CODESCORING_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - fluentd
+      - redis
+      - backend
+    volumes:
+      - django-static:/ipcs-backend/files/static
+      - analysis-root:/analysis-root
+      - ./ssl:/usr/local/share/ca-certificates
+    logging: *logging
+    command: >
+      /bin/bash -c "/wait && \
+        cd /ipcs-backend && \
+        python ./manage.py djangohuey --queue osa --no-periodic
+      "
 
   pgcat:
     image: registry-one.codescoring.ru/ipcs-pgcat:${CODESCORING_VERSION}
