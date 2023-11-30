@@ -245,7 +245,7 @@ services:
         python ./manage.py djangohuey --queue osa-container-image-scan --no-periodic
       "
 
-  tasks-osa-policy:
+  tasks-policy:
     <<: *app-dotenv-variables
     environment: *app-secrets
 
