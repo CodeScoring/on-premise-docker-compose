@@ -300,7 +300,7 @@ services:
       - psql
 
   redis:
-    image: registry-one.codescoring.ru/redis:7.0.10
+    image: registry-one.codescoring.ru/redis:7.0.12
     restart: unless-stopped
     depends_on:
       - fluentd
